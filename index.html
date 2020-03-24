@@ -7,7 +7,7 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>Badminton v20_0312_2108</title>
+    <title>Badminton v20_0324_2244</title>
 	<link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
     <script src="https://code.jquery.com/jquery-3.4.0.slim.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.19.1/axios.min.js"></script>
@@ -28,6 +28,17 @@
 			get courtNumberFieldFiler() { return '#' + GAME.courtNumberFID },
 			get pairedFieldFiler() { return '#' + GAME.pairedFID },
 			
+			/* 場次紀錄
+			[
+				[name, name, name, name],
+				[name, name, name, name],
+				[name, name, name, name],
+				[name, name, name, name],
+				[name, name, name, name],
+			]
+			*/
+			history: [],
+			
             /* 玩家
             [
                 {
@@ -35,7 +46,8 @@
                     playCount: 0
                     isPlaying: false,
                     active: true,
-					paired: [name,name,..]
+					paired: [name,name,..],  // 同隊過
+					lastMet: [name,name,..], // 最後遇過
                 },
             ]
             */
@@ -127,13 +139,25 @@
 				ps[1].paired.push(ps[0].name)
 				ps[2].paired.push(ps[3].name)
 				ps[3].paired.push(ps[2].name)
+				
+				// 場次紀錄
+				var courtPlayerNames = ps.map(e => e.name)
+				this.history.push(courtPlayerNames)
+				// 刷新UI
+				document.getElementById("history").value = this.history.join("\n")
+				
+				// 紀錄最後遇見過誰
+				ps[0].lastMet = courtPlayerNames
+				ps[1].lastMet = courtPlayerNames
+				ps[2].lastMet = courtPlayerNames
+				ps[3].lastMet = courtPlayerNames
  			
-		    		// 推播通知 (只有禮拜三2000~2200 會有效)
-					if (GAME.kAciveNotify){
-						axios.post('https://simon-pi.duckdns.org:9876/notify', {
-									names: c.players.map(p => p.name),
-								}).catch(e => console.error(e))
-					}
+				// 推播通知 (只有禮拜三2000~2200 會有效)
+				if (GAME.kAciveNotify){
+					axios.post('https://simon-pi.duckdns.org:9876/notify', {
+								names: c.players.map(p => p.name),
+							}).catch(e => console.error(e))
+				}
 		    
 				console.log('court', c.id, ', players', c.players)
 
@@ -148,11 +172,21 @@
 				return players.filter(p => !blockedPlayers.includes(p))
 			},
 			
-			findEnemiesByTeammate(teammate, players, selectedPlayers) {
+			findEnemiesByTeammate(starter, teammate, players, selectedPlayers) {
 				var tempSelected = selectedPlayers.slice()
 				tempSelected.push(teammate) // 暫時把這名隊友加入已被選擇的隊列中
 				
 				var enemies = this.findNonBlockedPlayers(players, tempSelected) // 篩選出可能作為敵人的人
+									.sort((a,b) => { // 依照發起者的最後遇見資料再次排序
+										var aMet = starter.lastMet.includes(a.name)
+										var bMet = starter.lastMet.includes(b.name)
+										
+										if (aMet !== bMet) {
+											return aMet - bMet  // 遇過者順位低
+										} else {
+											Math.random() - 0.5 // 隨機排序
+										}
+									})
 
 				if(enemies.length < 2) { // 敵人人選不足直接跳過
 					return []
@@ -183,7 +217,7 @@
 				for(var k in teammates) { // 依序嘗試配對每個清單中的人
 					var teammate = teammates[k]
 					
-					var enemies = this.findEnemiesByTeammate(teammate, players, blocked)
+					var enemies = this.findEnemiesByTeammate(starter, teammate, players, blocked)
 					if(enemies.length < 2) // 數量小於2表示沒有找到適合人選
 						continue
 
@@ -210,7 +244,7 @@
 												} else {
 													return Math.random() - 0.5 // 隨機排序
 												}
-											});
+											})
 
 				for(var k in sortedIdlePlayers) {
 					var starter = sortedIdlePlayers[k]
@@ -260,12 +294,14 @@
                     var playCount = parseInt($tr.find(GAME.playCountFieldFilter).val().trim(), 10) || 0
                     playCount = Math.max(playCount, 0)
 					var paired = $tr.find(GAME.pairedFieldFiler).val().trim().split(',')
+					var lastMet = []
 
                     GAME.players.push({
                         name,
                         isPlaying,
                         playCount,
-						paired
+						paired,
+						lastMet,
                     })
                 }
             });
@@ -293,6 +329,8 @@
                 { name: 'Wayne', active: true },
                 { name: 'Sandy', active: true },
 				
+                { name: 'Jessie', active: false },
+                { name: 'Kai', active: false },
                 { name: 'Tony', active: false },
                 { name: 'Landice', active: false },
                 { name: 'Carrie', active: false },
@@ -449,48 +487,27 @@
                             .find('input[id*=editable]').prop('disabled', false).end()   // 可以編輯
                             .find(GAME.courtNumberFieldFiler).val('').end()              // 場地
                     })
+					
             })
 			
-			// 球員快速導入功能
-			$('#importPlayerButton').click(function () {
-				var data = document.querySelector("#playerNameData").value
-				console.log("get player data : " + data)
-				var startPos = data.indexOf('):')
-				if(startPos < 0){
-					alert('格式不符!!')
-				} else {
-					var players = data.substring(startPos+2)
-										.split('\n')
-										.filter(n => n !== "" && n.indexOf(':') === -1)
-					console.log(players)
-					
-					var playerRows = document.querySelectorAll('table.players tbody tr')
-					for(var i=0; i< playerRows.length; i++){
-						var hasMappingName = i < players.length
-						var name = hasMappingName ? players[i] : i.toString()
-						//console.log("index:" + i +"'s name is " + name)
-						playerRows[i].querySelector(GAME.activeFieldFilter).checked = hasMappingName
-						playerRows[i].querySelector(GAME.playerNameFieldFilter).value = name
-					}
-					
-					GAME.calculatePlayerCount();
-				}
-			})
         });
     </script>
 </head>
 
 <body>
     <div class="players float">
-        <p>
+
+		<div id="history block" style="text-align: center;">
+		<p>history</p>
+		<p><textarea id="history" cols="30" rows="8"></textarea></p>
+		</div>
+		
+		<p>
             Total: <input type="text" class="total" disabled>
         </p>
-		<p>
-			import players:  <textarea id="playerNameData" cols="20" rows="5"></textarea> <input type="button" value="import!" class="button" id="importPlayerButton">
-		</p>
         <table class="players">
             <thead>
-                <th>加</th> <th>誰</th> <th>場</th> <th>量</th> <th>配</th>
+                <th>加</th> <th>誰</th> <th>場</th> <th>量</th>
             </thead>
             <tbody>
                 <tr>
@@ -498,7 +515,7 @@
                     <td><input type="text" class="long" id="player_name_editable"></td>
                     <td><input type="text" class="short" id="court_number" disabled></td>
                     <td><input type="text" class="short" id="play_count_editable" value="0"></td>
-                    <td><input type="text" class="long" id="paired" value=""></td>
+                    <td><input type="text" class="long" id="paired" value="" hidden=true></td>
                 </tr>
             </tbody>
         </table>
