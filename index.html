@@ -2,12 +2,13 @@
 <!-- https://www.w3schools.com/jquery/jquery_ref_selectors.asp -->
 <!-- https://developer.mozilla.org/zh-TW/docs/Web/JavaScript/Obsolete_Pages/Obsolete_Pages/Obsolete_Pages/%E6%96%B0%E7%89%A9%E4%BB%B6%E7%9A%84%E5%BB%BA%E7%AB%8B/Getter_%E5%92%8C_Setter_%E7%9A%84%E5%AE%9A%E7%BE%A9 -->
 <!-- https://forum.jquery.com/topic/select-all-items-where-id-contains-a-string -->
+<!-- https://shubo.io/javascript-random-shuffle/ -->
 <!DOCTYPE>
 <html>
 
 <head>
     <meta charset="UTF-8">
-    <title>Badminton v20_0324_2244</title>
+    <title>Badminton v20_0331_2354</title>
 	<link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
     <script src="https://code.jquery.com/jquery-3.4.0.slim.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.19.1/axios.min.js"></script>
@@ -62,6 +63,16 @@
             ]
             */
             courts: [],
+			
+			shuffle(array) {
+				var newArray = array.slice()
+				for (var i = newArray.length - 1; i > 0; i--) {
+					var j = Math.floor(Math.random() * (i + 1))
+					
+					[newArray[i], newArray[j]] = [newArray[j], newArray[i]]
+				}
+				return newArray
+			},
 
             /**
              *  加場地
@@ -176,7 +187,7 @@
 				var tempSelected = selectedPlayers.slice()
 				tempSelected.push(teammate) // 暫時把這名隊友加入已被選擇的隊列中
 				
-				var enemies = this.findNonBlockedPlayers(players, tempSelected) // 篩選出可能作為敵人的人
+				var enemies = this.findNonBlockedPlayers(this.shuffle(players), tempSelected) // 篩選出可能作為敵人的人
 									.sort((a,b) => { // 依照發起者的最後遇見資料再次排序
 										var aMet = starter.lastMet.includes(a.name)
 										var bMet = starter.lastMet.includes(b.name)
@@ -197,7 +208,7 @@
 					var tempBlockForEnemy = tempSelected.slice()
 					tempBlockForEnemy.push(enemy)
 					
-					var enemyTeammates = this.findTeammate(enemy, players, tempBlockForEnemy)
+					var enemyTeammates = this.findTeammate(enemy, this.shuffle(players), tempBlockForEnemy)
 					if(enemyTeammates.length < 1) {
 						continue
 					} else {
@@ -229,7 +240,7 @@
 			},
 			
 			findPlayersVer2() {
-				var idlePlayers = this.players.filter(p => !p.isPlaying)                      // 挑出放空的人, 同時複製一份新陣列
+				var idlePlayers = this.shuffle(this.players).filter(p => !p.isPlaying)	// 挑出放空的人, 同時複製一份新陣列
 				
 				if(idlePlayers.length < 4){ // 人數不足
 					return []
