@@ -188,9 +188,9 @@
 				tempSelected.push(teammate) // 暫時把這名隊友加入已被選擇的隊列中
 				
 				var enemies = this.findNonBlockedPlayers(this.shuffle(players), tempSelected) // 篩選出可能作為敵人的人
-									.sort((a,b) => { // 依照發起者的最後遇見資料再次排序
-										var aMet = starter.lastMet.includes(a.name)
-										var bMet = starter.lastMet.includes(b.name)
+									.sort((a,b) => { // 依照發起者的最後遇見資料再次排序, 因為可能一方有休息, 所以雙向檢測. 互看(2), 單向(1), 皆無(0)
+										var aMet = starter.lastMet.includes(a.name) + a.lastMet.includes(starter.name)
+										var bMet = starter.lastMet.includes(b.name) + b.lastMet.includes(starter.name)
 										
 										if (aMet !== bMet) {
 											return aMet - bMet  // 遇過者順位低
