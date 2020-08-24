@@ -3,33 +3,62 @@
 <!-- https://developer.mozilla.org/zh-TW/docs/Web/JavaScript/Obsolete_Pages/Obsolete_Pages/Obsolete_Pages/%E6%96%B0%E7%89%A9%E4%BB%B6%E7%9A%84%E5%BB%BA%E7%AB%8B/Getter_%E5%92%8C_Setter_%E7%9A%84%E5%AE%9A%E7%BE%A9 -->
 <!-- https://forum.jquery.com/topic/select-all-items-where-id-contains-a-string -->
 <!-- https://shubo.io/javascript-random-shuffle/ -->
-<!DOCTYPE>
+<!DOCTYPE >
 <html>
+    <head>
+        <meta charset="UTF-8" />
+        <title>Badminton v20_0415_1139</title>
+        <link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css" />
+        <script src="https://code.jquery.com/jquery-3.4.0.slim.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.19.1/axios.min.js"></script>
+        <script>
+            window.addEventListener(
+                "DOMContentLoaded",
+                function () {
+                    var page = document.getElementById("page"),
+                        nav = window.navigator,
+                        ua = nav.userAgent,
+                        isFullScreen = nav.standalone;
+                    if (ua.indexOf("Android") !== -1) {
+                        // 56对应的是Android Browser导航栏的高度
+                        page.style.height = window.innerHeight + 56 + "px";
+                    } else if (/iPhone|iPod|iPad/.test(ua)) {
+                        // 60对应的是Safari导航栏的高度
+                        page.style.height = window.innerHeight + (isFullScreen ? 0 : 60) + "px";
+                    }
+                    setTimeout(scrollTo, 0, 0, 1);
+                },
+                false
+            );
+        </script>
+        <script>
+            const GAME = {
+                // 控管推播用
+                kAciveNotify: true,
 
-<head>
-    <meta charset="UTF-8">
-    <title>Badminton v20_0415_1139</title>
-    <link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
-    <script src="https://code.jquery.com/jquery-3.4.0.slim.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.19.1/axios.min.js"></script>
-    <script>
-        const GAME = {
-            // 控管推播用
-            kAciveNotify: true,
-            
-            // UI們的filter
-            activeCheckboxFID: 'active_checkbox_editable',
-            playerNameFID: 'player_name_editable',
-            playCountFID: 'play_count_editable',
-            courtNumberFID: 'court_number',
-            pairedFID: 'paired',
-            get activeFieldFilter() { return '#' + GAME.activeCheckboxFID },
-            get playerNameFieldFilter() { return '#' + GAME.playerNameFID },
-            get playCountFieldFilter() { return '#' + GAME.playCountFID },
-            get courtNumberFieldFiler() { return '#' + GAME.courtNumberFID },
-            get pairedFieldFiler() { return '#' + GAME.pairedFID },
-            
-            /* 場次紀錄
+                // UI們的filter
+                activeCheckboxFID: "active_checkbox_editable",
+                playerNameFID: "player_name_editable",
+                playCountFID: "play_count_editable",
+                courtNumberFID: "court_number",
+                pairedFID: "paired",
+                get activeFieldFilter() {
+                    return "#" + GAME.activeCheckboxFID;
+                },
+                get playerNameFieldFilter() {
+                    return "#" + GAME.playerNameFID;
+                },
+                get playCountFieldFilter() {
+                    return "#" + GAME.playCountFID;
+                },
+                get courtNumberFieldFiler() {
+                    return "#" + GAME.courtNumberFID;
+                },
+                get pairedFieldFiler() {
+                    return "#" + GAME.pairedFID;
+                },
+
+                /* 場次紀錄
             [
                 [name, name, name, name],
                 [name, name, name, name],
@@ -38,9 +67,9 @@
                 [name, name, name, name],
             ]
             */
-            history: [],
-            
-            /* 玩家
+                history: [],
+
+                /* 玩家
             [
                 {
                     name,
@@ -52,9 +81,9 @@
                 },
             ]
             */
-            players: [],
+                players: [],
 
-            /* 場地
+                /* 場地
             [
                 {
                     index: 0,
@@ -62,215 +91,216 @@
                 },
             ]
             */
-            courts: [],
-            
-            shuffle(array) {
-                var newArray = array.slice()
-                for (var i = newArray.length - 1; i > 0; i--) {
-                    var j = Math.floor(Math.random() * (i + 1))
-                    
-                    [newArray[i], newArray[j]] = [newArray[j], newArray[i]]
-                }
-                return newArray
-            },
+                courts: [],
 
-            /**
-             *  加場地
-             *  @return {Court} - 加入的場地資料
-             */
-            addCourt() {
-                var court = {
-                    id: this.courts.length == 0 ? 0 : (this.courts.sort((a, b) => b.id - a.id)[0].id + 1),
-                    players: [],
-                }
-                this.courts.push(court)
-                return court
-            },
-
-            /**
-             *  移除空場地
-             *  @return {Court} - 被移除的場地資料
-             */
-            removeEmptyCourt() {
-                var index = this.courts.findIndex(c => c.players.length == 0)
-                if (index >= 0) {
-                    return this.courts.splice(index, 1)[0];
-                }
-
-                return undefined;
-            },
-
-            /**
-             *  遊戲結束
-             *  @param {Number} id - 場地編號
-             *  @return {Array} - 那一場的玩家
-             */
-            gameFinish(id) {
-                var court = this.courts.find(c => c.id == id);
-                if (court) {
-                    var players = court.players.splice(0);
-                    players.forEach(p => p.isPlaying = false)
-                    return players;
-                } else {
-                    console.log('court index error', courtIndex);
-                    return [];
-                }
-            },
-
-            /**
-             *  下一輪的遊戲
-             *  @return {Court[]} - 補上玩家的場地資料array
-             */
-            nextGame() {
-                var emptyCourts = this.courts.filter(c => c.players.length == 0)
-                
-                if(emptyCourts < 1)
-                    return
-
-                var freePlayers = this.findPlayersVer2()
-                if(freePlayers.length < 4) {
-                    console.log("!!!組不起來, 清除配對資料, 重新來過!!!")
-                    this.players.forEach(p => p.paired = [])
-                    this.nextGame()
-                }
-
-                var c = emptyCourts[0]
-
-                freePlayers
-                    .splice(0, 4)
-                    .forEach(p => {
-                        c.players.push(p)
-                        p.isPlaying = true
-                        p.playCount++
-                    })
-
-                // 紀錄組隊資料
-                var ps = c.players
-                ps[0].paired.push(ps[1].name)
-                ps[1].paired.push(ps[0].name)
-                ps[2].paired.push(ps[3].name)
-                ps[3].paired.push(ps[2].name)
-                
-                // 場次紀錄
-                var courtPlayerNames = ps.map(e => e.name)
-                this.history.push(courtPlayerNames)
-                // 刷新UI
-                document.getElementById("history").value = this.history.join("\n")
-                
-                // 紀錄最後遇見過誰
-                ps[0].lastMet = courtPlayerNames
-                ps[1].lastMet = courtPlayerNames
-                ps[2].lastMet = courtPlayerNames
-                ps[3].lastMet = courtPlayerNames
-            
-                // 推播通知 (只有禮拜三2000~2200 會有效)
-                if (GAME.kAciveNotify){
-                    axios.post('https://simon-pi.duckdns.org:9876/notify', {
-                                names: c.players.map(p => p.name),
-                            }).catch(e => console.error(e))
-                }
-            
-                console.log('court', c.id, ', players', c.players)
-
-                return [c].concat(emptyCourts.length > 1 ? this.nextGame() : [])
-            },
-            
-            findTeammate(starter, players, blockedPlayers) {
-                return this.findNonBlockedPlayers(players, blockedPlayers).filter(p => !starter.paired.includes(p.name))
-            },
-            
-            findNonBlockedPlayers(players, blockedPlayers) {
-                return players.filter(p => !blockedPlayers.includes(p))
-            },
-            
-            findEnemiesByTeammate(starter, teammate, players, selectedPlayers) {
-                var tempSelected = selectedPlayers.slice()
-                tempSelected.push(teammate) // 暫時把這名隊友加入已被選擇的隊列中
-                
-                var enemies = this.findNonBlockedPlayers(this.shuffle(players), tempSelected) // 篩選出可能作為敵人的人
-                                    .sort((a,b) => { // 依照發起者的最後遇見資料再次排序, 因為可能一方有休息, 所以雙向檢測. 互看(2), 單向(1), 皆無(0)
-                                        var aMet = starter.lastMet.includes(a.name) + a.lastMet.includes(starter.name)
-                                        var bMet = starter.lastMet.includes(b.name) + b.lastMet.includes(starter.name)
-                                        
-                                        if (aMet !== bMet) {
-                                            return aMet - bMet  // 遇過者順位低
-                                        } else {
-                                            Math.random() - 0.5 // 隨機排序
-                                        }
-                                    })
-
-                if(enemies.length < 2) { // 敵人人選不足直接跳過
-                    return []
-                }
-                
-                for(var k in enemies) {
-                    var enemy = enemies[k]
-                    var tempBlockForEnemy = tempSelected.slice()
-                    tempBlockForEnemy.push(enemy)
-                    
-                    var enemyTeammates = this.findTeammate(enemy, this.shuffle(players), tempBlockForEnemy)
-                    if(enemyTeammates.length < 1) {
-                        continue
-                    } else {
-                        return [enemy, enemyTeammates[0]] // [敵人, 敵人的隊友]
+                shuffle(array) {
+                    var newArray = array.slice();
+                    for (var i = newArray.length - 1; i > 0; i--) {
+                        var j = (Math.floor(Math.random() * (i + 1))[(newArray[i], newArray[j])] = [newArray[j], newArray[i]]);
                     }
-                }
-            },
-            
-            findMatchPlayersByStarter(starter, players) {
-                var blocked = [starter]
-                
-                var teammates = this.findTeammate(starter, players, blocked) // 先找出可能成為隊友的清單
-                if(teammates.length < 1) { // 沒有可用的隊友, 直接放棄
-                    return []
-                }
-                
-                for(var k in teammates) { // 依序嘗試配對每個清單中的人
-                    var teammate = teammates[k]
-                    
-                    var enemies = this.findEnemiesByTeammate(starter, teammate, players, blocked)
-                    if(enemies.length < 2) // 數量小於2表示沒有找到適合人選
-                        continue
+                    return newArray;
+                },
 
-                    return [starter, teammate, enemies[0], enemies[1]] // [起始者, 起始者隊友, 對手A, 對手B]
-                }
-                
-                // 都沒有適合的組合, 回傳空陣列
-                return []
-            },
-            
-            findPlayersVer2() {
-                var idlePlayers = this.shuffle(this.players).filter(p => !p.isPlaying)	// 挑出放空的人, 同時複製一份新陣列
-                
-                if(idlePlayers.length < 4){ // 人數不足
-                    return []
-                }
-                
-                var sortedIdlePlayers = idlePlayers
-                                            .sort((a,b) => {
-                                                if(a.playCount !== b.playCount){ // 次數最少的人最優先
-                                                    return a.playCount - b.playCount
-                                                } else if (a.paired.length !== b.paired.length) {
-                                                    return a.paired.length - b.paired.length // 第二篩選曾經配過人數最低者優先
-                                                } else {
-                                                    return Math.random() - 0.5 // 隨機排序
-                                                }
-                                            })
+                /**
+                 *  加場地
+                 *  @return {Court} - 加入的場地資料
+                 */
+                addCourt() {
+                    var court = {
+                        id: this.courts.length == 0 ? 0 : this.courts.sort((a, b) => b.id - a.id)[0].id + 1,
+                        players: []
+                    };
+                    this.courts.push(court);
+                    return court;
+                },
 
-                for(var k in sortedIdlePlayers) {
-                    var starter = sortedIdlePlayers[k]
-                    var finalPlayers = this.findMatchPlayersByStarter(starter, sortedIdlePlayers)
+                /**
+                 *  移除空場地
+                 *  @return {Court} - 被移除的場地資料
+                 */
+                removeEmptyCourt() {
+                    var index = this.courts.findIndex((c) => c.players.length == 0);
+                    if (index >= 0) {
+                        return this.courts.splice(index, 1)[0];
+                    }
 
-                    if(finalPlayers.length === 4)
-                        return finalPlayers
-                }
-                
-                return []
-            },
+                    return undefined;
+                },
 
-            _mockingData() {
-                this.players = 'ABCDEFG'.split('')
-                    .map(name => ({
+                /**
+                 *  遊戲結束
+                 *  @param {Number} id - 場地編號
+                 *  @return {Array} - 那一場的玩家
+                 */
+                gameFinish(id) {
+                    var court = this.courts.find((c) => c.id == id);
+                    if (court) {
+                        var players = court.players.splice(0);
+                        players.forEach((p) => (p.isPlaying = false));
+                        return players;
+                    } else {
+                        console.log("court index error", courtIndex);
+                        return [];
+                    }
+                },
+
+                /**
+                 *  下一輪的遊戲
+                 *  @return {Court[]} - 補上玩家的場地資料array
+                 */
+                nextGame() {
+                    var emptyCourts = this.courts.filter((c) => c.players.length == 0);
+
+                    if (emptyCourts < 1) return;
+
+                    var freePlayers = this.findPlayersVer2();
+                    if (freePlayers.length < 4) {
+                        console.log("!!!組不起來, 清除配對資料, 重新來過!!!");
+                        this.players.forEach((p) => (p.paired = []));
+                        this.nextGame();
+                    }
+
+                    var c = emptyCourts[0];
+
+                    freePlayers.splice(0, 4).forEach((p) => {
+                        c.players.push(p);
+                        p.isPlaying = true;
+                        p.playCount++;
+                    });
+
+                    // 紀錄組隊資料
+                    var ps = c.players;
+                    ps[0].paired.push(ps[1].name);
+                    ps[1].paired.push(ps[0].name);
+                    ps[2].paired.push(ps[3].name);
+                    ps[3].paired.push(ps[2].name);
+
+                    // 場次紀錄
+                    var courtPlayerNames = ps.map((e) => e.name);
+                    this.history.push(courtPlayerNames);
+                    // 刷新UI
+                    document.getElementById("history").value = this.history.join("\n");
+
+                    // 紀錄最後遇見過誰
+                    ps[0].lastMet = courtPlayerNames;
+                    ps[1].lastMet = courtPlayerNames;
+                    ps[2].lastMet = courtPlayerNames;
+                    ps[3].lastMet = courtPlayerNames;
+
+                    // 推播通知 (只有禮拜三2000~2200 會有效)
+                    if (GAME.kAciveNotify) {
+                        axios
+                            .post("https://simon-pi.duckdns.org:9876/notify", {
+                                names: c.players.map((p) => p.name)
+                            })
+                            .catch((e) => console.error(e));
+                    }
+
+                    console.log("court", c.id, ", players", c.players);
+
+                    return [c].concat(emptyCourts.length > 1 ? this.nextGame() : []);
+                },
+
+                findTeammate(starter, players, blockedPlayers) {
+                    return this.findNonBlockedPlayers(players, blockedPlayers).filter((p) => !starter.paired.includes(p.name));
+                },
+
+                findNonBlockedPlayers(players, blockedPlayers) {
+                    return players.filter((p) => !blockedPlayers.includes(p));
+                },
+
+                findEnemiesByTeammate(starter, teammate, players, selectedPlayers) {
+                    var tempSelected = selectedPlayers.slice();
+                    tempSelected.push(teammate); // 暫時把這名隊友加入已被選擇的隊列中
+
+                    var enemies = this.findNonBlockedPlayers(this.shuffle(players), tempSelected) // 篩選出可能作為敵人的人
+                        .sort((a, b) => {
+                            // 依照發起者的最後遇見資料再次排序, 因為可能一方有休息, 所以雙向檢測. 互看(2), 單向(1), 皆無(0)
+                            var aMet = starter.lastMet.includes(a.name) + a.lastMet.includes(starter.name);
+                            var bMet = starter.lastMet.includes(b.name) + b.lastMet.includes(starter.name);
+
+                            if (aMet !== bMet) {
+                                return aMet - bMet; // 遇過者順位低
+                            } else {
+                                Math.random() - 0.5; // 隨機排序
+                            }
+                        });
+
+                    if (enemies.length < 2) {
+                        // 敵人人選不足直接跳過
+                        return [];
+                    }
+
+                    for (var k in enemies) {
+                        var enemy = enemies[k];
+                        var tempBlockForEnemy = tempSelected.slice();
+                        tempBlockForEnemy.push(enemy);
+
+                        var enemyTeammates = this.findTeammate(enemy, this.shuffle(players), tempBlockForEnemy);
+                        if (enemyTeammates.length < 1) {
+                            continue;
+                        } else {
+                            return [enemy, enemyTeammates[0]]; // [敵人, 敵人的隊友]
+                        }
+                    }
+                },
+
+                findMatchPlayersByStarter(starter, players) {
+                    var blocked = [starter];
+
+                    var teammates = this.findTeammate(starter, players, blocked); // 先找出可能成為隊友的清單
+                    if (teammates.length < 1) {
+                        // 沒有可用的隊友, 直接放棄
+                        return [];
+                    }
+
+                    for (var k in teammates) {
+                        // 依序嘗試配對每個清單中的人
+                        var teammate = teammates[k];
+
+                        var enemies = this.findEnemiesByTeammate(starter, teammate, players, blocked);
+                        if (enemies.length < 2)
+                            // 數量小於2表示沒有找到適合人選
+                            continue;
+
+                        return [starter, teammate, enemies[0], enemies[1]]; // [起始者, 起始者隊友, 對手A, 對手B]
+                    }
+
+                    // 都沒有適合的組合, 回傳空陣列
+                    return [];
+                },
+
+                findPlayersVer2() {
+                    var idlePlayers = this.shuffle(this.players).filter((p) => !p.isPlaying); // 挑出放空的人, 同時複製一份新陣列
+
+                    if (idlePlayers.length < 4) {
+                        // 人數不足
+                        return [];
+                    }
+
+                    var sortedIdlePlayers = idlePlayers.sort((a, b) => {
+                        if (a.playCount !== b.playCount) {
+                            // 次數最少的人最優先
+                            return a.playCount - b.playCount;
+                        } else if (a.paired.length !== b.paired.length) {
+                            return a.paired.length - b.paired.length; // 第二篩選曾經配過人數最低者優先
+                        } else {
+                            return Math.random() - 0.5; // 隨機排序
+                        }
+                    });
+
+                    for (var k in sortedIdlePlayers) {
+                        var starter = sortedIdlePlayers[k];
+                        var finalPlayers = this.findMatchPlayersByStarter(starter, sortedIdlePlayers);
+
+                        if (finalPlayers.length === 4) return finalPlayers;
+                    }
+
+                    return [];
+                },
+
+                _mockingData() {
+                    this.players = "ABCDEFG".split("").map((name) => ({
                         name,
                         playCount: Math.floor(Math.random() * 3),
                         isPlaying: false,
@@ -278,343 +308,364 @@
                         paired: []
                     }));
 
-                this.addCourt();
-                this.addCourt();
-            },
-            
-            calculatePlayerCount() {
-                // trigger 計算總人數
-                $(GAME.activeFieldFilter + ':first').trigger('change');
-            },
-        };
-        //GAME._mockingData()
-        console.log(GAME);
+                    this.addCourt();
+                    this.addCourt();
+                },
 
-        function getPlayersFromUI() {
-            GAME.players.length = 0
-
-            $('table.players tbody tr').each(function () {
-                var $tr = $(this)
-                var active = $tr.find(GAME.activeFieldFilter).prop('checked')
-                var name = $tr.find(GAME.playerNameFieldFilter).val().trim()
-
-                if (active && name.length > 0) {
-                    var isPlaying = $tr.find(GAME.courtNumberFieldFiler).val().length > 0
-
-                    // playCount 會當array index, 不允許負值
-                    var playCount = parseInt($tr.find(GAME.playCountFieldFilter).val().trim(), 10) || 0
-                    playCount = Math.max(playCount, 0)
-                    var paired = $tr.find(GAME.pairedFieldFiler).val().trim().split(',')
-                    var lastMet = []
-
-                    GAME.players.push({
-                        name,
-                        isPlaying,
-                        playCount,
-                        paired,
-                        lastMet,
-                    })
+                calculatePlayerCount() {
+                    // trigger 計算總人數
+                    $(GAME.activeFieldFilter + ":first").trigger("change");
                 }
-            });
+            };
+            //GAME._mockingData()
+            console.log(GAME);
 
-            console.log('getPlayersFromUI', GAME.players)
-        }
+            function getPlayersFromUI() {
+                GAME.players.length = 0;
 
-        function fillDefaultPlayers() {
-            var $tr = $('table.players tbody tr');
-
-            [
-                { name: 'Jack', active: true },
-                { name: '逸涵', active: true },
-                { name: 'Simon', active: false },
-                { name: 'Fred', active: true },
-                { name: 'Eric', active: true },
-                { name: '書汶', active: true },
-                { name: 'Dennis', active: true },
-                { name: 'Bryan', active: true },
-                { name: 'Amy', active: true },
-                { name: 'Evan', active: true },
-                { name: 'Hogan', active: true },
-                { name: 'Jerry', active: true },
-                { name: 'BB', active: true },
-                { name: 'Wayne', active: true },
-                { name: 'Sandy', active: true },
-                { name: 'Jessie', active: true },
-                
-                { name: 'Kai', active: false },
-                { name: 'Tony', active: false },
-                { name: 'Landice', active: false },
-                { name: 'Carrie', active: false },
-                { name: 'Trista (姿妤)', active: false },
-                { name: 'Flora (曉楓)', active: false },
-                { name: 'FS', active: false },
-                { name: 'Rex', active: false },
-                { name: 'Hester', active: false },
-                { name: 'Smart', active: false },
-                { name: '黑黑', active: false },
-            ].forEach(p => {
-                var clone = $tr.clone()
-                    .find(GAME.activeFieldFilter).prop('checked', p.active).end()
-                    .find(GAME.playCountFieldFilter).val(0).end()
-                    .find(GAME.playerNameFieldFilter).val(p.name).end()
-
-                $tr.before(clone)
-            })
-        }
-
-        function findRowByPlayerName(name) {
-            var tr = $('table.players tbody ' + GAME.playerNameFieldFilter).filter(function () {
-                return this.value.trim() == name
-            }).closest('tr')
-
-            return tr
-        }
-
-        $(document).ready(function () {
-            // 從預設值填到玩家UI
-            fillDefaultPlayers();
-
-            // 場地編輯
-            $('input.courtEdit').click(function () {
-                var add = parseInt(this.dataset.num, 10) > 0;
-                if (add) {
-                    var court = GAME.addCourt();
-
-                    var $div = $('div.court:first')
-                    var $clone = $div.clone()
-                        .attr('id', court.id)
-                        .find('.player').each(function () { $(this).text(''); }).end()
-                        .find('.finish').hide().end()
-                        .show();
-
-                    $div.parent().append($clone);
-                } else {
-                    var court = GAME.removeEmptyCourt();
-
-                    if (court) {
-                        $('div.court')
-                            .filter(function () {
-                                return $(this).attr('id') == court.id;
-                            })
-                            .remove();
-                    }
-                }
-            });
-
-            // 一開始幫他按兩場
-            $('input.courtEdit[data-num="1"]')
-                .trigger('click')
-                .trigger('click');
-
-            // 下一場遊戲 按鈕
-            $('#nextGame').click(function () {
-                getPlayersFromUI();
-
-                // 結束按鈕都關閉
-                $('div.courts .finish').hide();
-
-                var nextGame = GAME.nextGame()
-                if (nextGame !== null){
-                    nextGame.forEach(court => {
-                        // 整理場地UI
-                        $('div.court')
-                            .filter(function () {
-                                return $(this).attr('id') == court.id;
-                            })
-                            .find('.player')
-                            .each(function (i) {
-                                $(this).text(court.players[i].name)
-                            })
-
-                        // 整理玩家UI
-                        court.players.forEach(player => {
-                            findRowByPlayerName(player.name)
-                                .find('input').prop('disabled', true).end()                  // 不能編輯那個玩家
-                                .find(GAME.courtNumberFieldFiler).val(court.id).end()        // 哪個場地
-                                .find(GAME.playCountFieldFilter).val(player.playCount).end() // 玩幾場了
-                                .find(GAME.pairedFieldFiler).val(player.paired.join()).end() // 紀錄已配對資料
-                        })
-                    })
-                }
-            })
-
-            // 編輯最後一行幫他加新row
-            $('table').on('change', GAME.playerNameFieldFilter, function () {
-                var $tr = $(this).closest('tr');
-                var isEmpty = this.value.trim().length == 0;
-                var isLast = $tr.is(':last-child');
-
-                if (!isEmpty && isLast) {
-                    var clone = $tr.clone()
-                        .find(GAME.playCountFieldFilter).val(0).end()
-                        .find(GAME.playerNameFieldFilter).val('').end()
-
-                    $tr.after(clone);
-                }
-            });
-
-            // 計算總人數
-            $('table').on('change', GAME.activeFieldFilter + ', ' + GAME.playerNameFieldFilter, function () {
-                var validRows = $('table.players tbody tr').filter(function () {
+                $("table.players tbody tr").each(function () {
                     var $tr = $(this);
-                    var active = $tr.find(GAME.activeFieldFilter).prop('checked');
+                    var active = $tr.find(GAME.activeFieldFilter).prop("checked");
                     var name = $tr.find(GAME.playerNameFieldFilter).val().trim();
 
-                    return active && name.length > 0
+                    if (active && name.length > 0) {
+                        var isPlaying = $tr.find(GAME.courtNumberFieldFiler).val().length > 0;
+
+                        // playCount 會當array index, 不允許負值
+                        var playCount = parseInt($tr.find(GAME.playCountFieldFilter).val().trim(), 10) || 0;
+                        playCount = Math.max(playCount, 0);
+                        var paired = $tr.find(GAME.pairedFieldFiler).val().trim().split(",");
+                        var lastMet = [];
+
+                        GAME.players.push({
+                            name,
+                            isPlaying,
+                            playCount,
+                            paired,
+                            lastMet
+                        });
+                    }
                 });
 
-                $('input.total').val(validRows.length)
-            });
+                console.log("getPlayersFromUI", GAME.players);
+            }
 
-            // trigger 計算總人數
-            GAME.calculatePlayerCount();
+            function fillDefaultPlayers() {
+                var $tr = $("table.players tbody tr");
 
-            // 場地 顯示[結束按鈕]
-            $('div.courts').on('click', 'div.court', function () {
-                $(this).find('.finish').toggle();
-            })
+                [
+                    { name: "Jack", active: true },
+                    { name: "逸涵", active: true },
+                    { name: "Simon", active: false },
+                    { name: "Fred", active: true },
+                    { name: "Eric", active: true },
+                    { name: "書汶", active: true },
+                    { name: "Dennis", active: true },
+                    { name: "Bryan", active: true },
+                    { name: "Amy", active: true },
+                    { name: "Evan", active: true },
+                    { name: "Hogan", active: true },
+                    { name: "Jerry", active: true },
+                    { name: "BB", active: true },
+                    { name: "Wayne", active: true },
+                    { name: "Sandy", active: true },
+                    { name: "Jessie", active: true },
 
-            // 場地 [結束按鈕]
-            $('div.courts').on('click', '.finish', function (event) {
-                // prevent div.court trigger click event
-                event.stopPropagation();
+                    { name: "Kai", active: false },
+                    { name: "Tony", active: false },
+                    { name: "Landice", active: false },
+                    { name: "Carrie", active: false },
+                    { name: "Trista (姿妤)", active: false },
+                    { name: "Flora (曉楓)", active: false },
+                    { name: "FS", active: false },
+                    { name: "Rex", active: false },
+                    { name: "Hester", active: false },
+                    { name: "Smart", active: false },
+                    { name: "黑黑", active: false }
+                ].forEach((p) => {
+                    var clone = $tr
+                        .clone()
+                        .find(GAME.activeFieldFilter)
+                        .prop("checked", p.active)
+                        .end()
+                        .find(GAME.playCountFieldFilter)
+                        .val(0)
+                        .end()
+                        .find(GAME.playerNameFieldFilter)
+                        .val(p.name)
+                        .end();
 
-                var $court = $(this).closest('div.court');
-                var courtId = $court.attr('id');
-                console.log('finish', courtId);
+                    $tr.before(clone);
+                });
+            }
 
-                // 整理場地UI
-                $court
-                    .find('.finish').hide().end()
-                    .find('.player').each(function () {
-                        $(this).text('')
+            function findRowByPlayerName(name) {
+                var tr = $("table.players tbody " + GAME.playerNameFieldFilter)
+                    .filter(function () {
+                        return this.value.trim() == name;
                     })
+                    .closest("tr");
 
-                // 整理玩家UI
-                GAME.gameFinish(courtId)
-                    .forEach(player => {
+                return tr;
+            }
+
+            $(document).ready(function () {
+                // 從預設值填到玩家UI
+                fillDefaultPlayers();
+
+                // 場地編輯
+                $("input.courtEdit").click(function () {
+                    var add = parseInt(this.dataset.num, 10) > 0;
+                    if (add) {
+                        var court = GAME.addCourt();
+
+                        var $div = $("div.court:first");
+                        var $clone = $div
+                            .clone()
+                            .attr("id", court.id)
+                            .find(".player")
+                            .each(function () {
+                                $(this).text("");
+                            })
+                            .end()
+                            .find(".finish")
+                            .hide()
+                            .end()
+                            .show();
+
+                        $div.parent().append($clone);
+                    } else {
+                        var court = GAME.removeEmptyCourt();
+
+                        if (court) {
+                            $("div.court")
+                                .filter(function () {
+                                    return $(this).attr("id") == court.id;
+                                })
+                                .remove();
+                        }
+                    }
+                });
+
+                // 一開始幫他按兩場
+                $('input.courtEdit[data-num="1"]').trigger("click").trigger("click");
+
+                // 下一場遊戲 按鈕
+                $("#nextGame").click(function () {
+                    getPlayersFromUI();
+
+                    // 結束按鈕都關閉
+                    $("div.courts .finish").hide();
+
+                    var nextGame = GAME.nextGame();
+                    if (nextGame !== null) {
+                        nextGame.forEach((court) => {
+                            // 整理場地UI
+                            $("div.court")
+                                .filter(function () {
+                                    return $(this).attr("id") == court.id;
+                                })
+                                .find(".player")
+                                .each(function (i) {
+                                    $(this).text(court.players[i].name);
+                                });
+
+                            // 整理玩家UI
+                            court.players.forEach((player) => {
+                                findRowByPlayerName(player.name)
+                                    .find("input")
+                                    .prop("disabled", true)
+                                    .end() // 不能編輯那個玩家
+                                    .find(GAME.courtNumberFieldFiler)
+                                    .val(court.id)
+                                    .end() // 哪個場地
+                                    .find(GAME.playCountFieldFilter)
+                                    .val(player.playCount)
+                                    .end() // 玩幾場了
+                                    .find(GAME.pairedFieldFiler)
+                                    .val(player.paired.join())
+                                    .end(); // 紀錄已配對資料
+                            });
+                        });
+                    }
+                });
+
+                // 編輯最後一行幫他加新row
+                $("table").on("change", GAME.playerNameFieldFilter, function () {
+                    var $tr = $(this).closest("tr");
+                    var isEmpty = this.value.trim().length == 0;
+                    var isLast = $tr.is(":last-child");
+
+                    if (!isEmpty && isLast) {
+                        var clone = $tr.clone().find(GAME.playCountFieldFilter).val(0).end().find(GAME.playerNameFieldFilter).val("").end();
+
+                        $tr.after(clone);
+                    }
+                });
+
+                // 計算總人數
+                $("table").on("change", GAME.activeFieldFilter + ", " + GAME.playerNameFieldFilter, function () {
+                    var validRows = $("table.players tbody tr").filter(function () {
+                        var $tr = $(this);
+                        var active = $tr.find(GAME.activeFieldFilter).prop("checked");
+                        var name = $tr.find(GAME.playerNameFieldFilter).val().trim();
+
+                        return active && name.length > 0;
+                    });
+
+                    $("input.total").val(validRows.length);
+                });
+
+                // trigger 計算總人數
+                GAME.calculatePlayerCount();
+
+                // 場地 顯示[結束按鈕]
+                $("div.courts").on("click", "div.court", function () {
+                    $(this).find(".finish").toggle();
+                });
+
+                // 場地 [結束按鈕]
+                $("div.courts").on("click", ".finish", function (event) {
+                    // prevent div.court trigger click event
+                    event.stopPropagation();
+
+                    var $court = $(this).closest("div.court");
+                    var courtId = $court.attr("id");
+                    console.log("finish", courtId);
+
+                    // 整理場地UI
+                    $court
+                        .find(".finish")
+                        .hide()
+                        .end()
+                        .find(".player")
+                        .each(function () {
+                            $(this).text("");
+                        });
+
+                    // 整理玩家UI
+                    GAME.gameFinish(courtId).forEach((player) => {
                         // 整理玩家UI
                         findRowByPlayerName(player.name)
-                            .find('input[id*=editable]').prop('disabled', false).end()   // 可以編輯
-                            .find(GAME.courtNumberFieldFiler).val('').end()              // 場地
-                    })
-                    
-            })
-            
-        });
-    </script>
-</head>
+                            .find("input[id*=editable]")
+                            .prop("disabled", false)
+                            .end() // 可以編輯
+                            .find(GAME.courtNumberFieldFiler)
+                            .val("")
+                            .end(); // 場地
+                    });
+                });
+            });
+        </script>
+    </head>
 
-<body>
-    <div class="players float">
-
-        <div id="history block" style="text-align: center;">
-        <p>history</p>
-        <p><textarea id="history" cols="30" rows="8"></textarea></p>
-        </div>
-        
-        <p>
-            Total: <input type="text" class="total" disabled>
-        </p>
-        <table class="players">
-            <thead>
-                <th>加</th> <th>誰</th> <th>場</th> <th>量</th>
-            </thead>
-            <tbody>
-                <tr>
-                    <td><input type="checkbox" class="checkbox" id="active_checkbox_editable"></td>
-                    <td><input type="text" class="long" id="player_name_editable"></td>
-                    <td><input type="text" class="short" id="court_number" disabled></td>
-                    <td><input type="text" class="short" id="play_count_editable" value="0"></td>
-                    <td><input type="text" class="long" id="paired" value="" hidden=true></td>
-                </tr>
-            </tbody>
-        </table>
-    </div>
-
-    <div class="courts float">
-        <div class="courtControl">
-            <label for="add court">場</label>
-            <input id="add court" type="button" value="+" class="courtEdit button" data-num="1">
-            <input type="button" value="-" class="courtEdit button" data-num="-1">
-        </div>
-
-        <input type="button" value="配" class="button" id="nextGame">
-
-        <div class="court" style="display:none;">
-            <input type="button" value="終" class="finish">
-            <div class="team">
-                <span class="player"></span>
-                <span class="player"></span>
+    <body>
+        <div class="players float">
+            <div id="history block" style="text-align: center;">
+                <p>history</p>
+                <p><textarea id="history" cols="30" rows="8"></textarea></p>
             </div>
-            <div class="team">
-                <span class="player"></span>
-                <span class="player"></span>
-            </div>
+
+            <p>Total: <input type="text" class="total" disabled /></p>
+            <table class="players">
+                <thead>
+                    <th>加</th>
+                    <th>誰</th>
+                    <th>場</th>
+                    <th>量</th>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><input type="checkbox" class="checkbox" id="active_checkbox_editable" /></td>
+                        <td><input type="text" class="long" id="player_name_editable" /></td>
+                        <td><input type="text" class="short" id="court_number" disabled /></td>
+                        <td><input type="text" class="short" id="play_count_editable" value="0" /></td>
+                        <td><input type="text" class="long" id="paired" value="" hidden="true" /></td>
+                    </tr>
+                </tbody>
+            </table>
         </div>
 
-    </div>
-</body>
-<style>
-    body {
-        overscroll-behavior: contain;
-    }
+        <div class="courts float">
+            <div class="courtControl">
+                <label for="add court">場</label>
+                <input id="add court" type="button" value="+" class="courtEdit button" data-num="1" />
+                <input type="button" value="-" class="courtEdit button" data-num="-1" />
+            </div>
 
-    input.long {
-        border-radius: 4px;
-        border: 1px solid #ccc!important;
-        height: 36px;
-        width: 100px;
-        font-size: large;
-    }
-    
-    input.short {
-        border-radius: 4px;
-        border: 1px solid #ccc!important;
-        height: 36px;
-        width: 36px;
-        font-size: large;
-        text-align: center;
-    }
-    
-    input.checkbox {
-        width: 24px;
-        height: 24px;
-        position: relative;
-    }
-    
-    input.button {
-        font-size: large;
-        text-align: center;
-    }
+            <input type="button" value="配" class="button" id="nextGame" />
 
-    div {
-        padding: 10px;
-    }
+            <div class="court" style="display: none;">
+                <input type="button" value="終" class="finish" />
+                <div class="team">
+                    <span class="player"></span>
+                    <span class="player"></span>
+                </div>
+                <div class="team">
+                    <span class="player"></span>
+                    <span class="player"></span>
+                </div>
+            </div>
+        </div>
+    </body>
+    <style>
+        body {
+            overscroll-behavior: contain;
+        }
 
-    div.float {
-        float: left;
-    }
+        input.long {
+            border-radius: 4px;
+            border: 1px solid #ccc !important;
+            height: 36px;
+            width: 100px;
+            font-size: large;
+        }
 
-    div.courts {
-        background: #70bf6f;
-        text-align: center;
-    }
+        input.short {
+            border-radius: 4px;
+            border: 1px solid #ccc !important;
+            height: 36px;
+            width: 36px;
+            font-size: large;
+            text-align: center;
+        }
 
-    div.court {
-        background-color: #70bf6f;
-        margin: 10px;
-    }
+        input.checkbox {
+            width: 24px;
+            height: 24px;
+            position: relative;
+        }
 
-    div.team {
-        border: solid 2px #EBFFF0;
-        background-color: #70bf6f;
-        color: #1B1D1B;
-        min-height: 50px;
-        min-width: 160px;
-        font-size: large;
-    }
-    
-</style>
+        input.button {
+            font-size: large;
+            text-align: center;
+        }
 
+        div {
+            padding: 10px;
+        }
+
+        div.float {
+            float: left;
+        }
+
+        div.courts {
+            background: #70bf6f;
+            text-align: center;
+        }
+
+        div.court {
+            background-color: #70bf6f;
+            margin: 10px;
+        }
+
+        div.team {
+            border: solid 2px #ebfff0;
+            background-color: #70bf6f;
+            color: #1b1d1b;
+            min-height: 50px;
+            min-width: 160px;
+            font-size: large;
+        }
+    </style>
 </html>
